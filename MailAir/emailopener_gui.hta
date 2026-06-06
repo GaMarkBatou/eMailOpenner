@@ -22,126 +22,33 @@
   WINDOWSTATE="normal"
 />
 <style>
-html, body {
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-body {
-  font-family: Segoe UI, Arial, sans-serif;
-  background: #eef2f7;
-  color: #102033;
-  font-size: 13px;
-}
-.wrap {
-  padding: 18px;
-  box-sizing: border-box;
-  height: 100%;
-}
-h1 {
-  margin: 0 0 4px 0;
-  font-size: 21px;
-  line-height: 26px;
-  font-weight: 700;
-  color: #0f2540;
-}
-.sub {
-  color: #5f6f83;
-  margin-bottom: 14px;
-}
-.card {
-  background: #ffffff;
-  border: 1px solid #d4dce8;
-  border-radius: 8px;
-  padding: 13px 14px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 2px rgba(16,32,51,.06);
-}
-label {
-  display: block;
-  font-weight: 700;
-  margin-bottom: 7px;
-  color: #14263b;
-}
-.row {
-  display: table;
-  width: 100%;
-}
-.cell {
-  display: table-cell;
-  vertical-align: middle;
-}
-.cell.path {
-  width: 100%;
-  padding-right: 8px;
-}
-input[type=text] {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 8px 9px;
-  border: 1px solid #b7c2d2;
-  border-radius: 6px;
-  font-family: Consolas, monospace;
-  font-size: 12px;
-  background: #ffffff;
-  color: #102033;
-}
-button {
-  border: 0;
-  border-radius: 6px;
-  padding: 9px 14px;
-  cursor: hand;
-  font-weight: 700;
-  background: #e3e9f1;
-  color: #102033;
-  min-width: 82px;
-}
-button.primary { background: #2563eb; color: #fff; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+body { font-family: Segoe UI, Arial, sans-serif; background: #eef2f7; color: #102033; font-size: 13px; }
+.wrap { padding: 18px; box-sizing: border-box; height: 100%; }
+h1 { margin: 0 0 4px 0; font-size: 21px; line-height: 26px; font-weight: 700; color: #0f2540; }
+.sub { color: #5f6f83; margin-bottom: 14px; }
+.card { background: #ffffff; border: 1px solid #d4dce8; border-radius: 8px; padding: 13px 14px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(16,32,51,.06); }
+label { display: block; font-weight: 700; margin-bottom: 7px; color: #14263b; }
+.row { display: table; width: 100%; }
+.cell { display: table-cell; vertical-align: middle; }
+.cell.path { width: 100%; padding-right: 8px; }
+input[type=text] { width: 100%; box-sizing: border-box; padding: 8px 9px; border: 1px solid #b7c2d2; border-radius: 6px; font-family: Consolas, monospace; font-size: 12px; background: #ffffff; color: #102033; }
+button { border: 0; border-radius: 6px; padding: 9px 14px; cursor: hand; font-weight: 700; background: #e3e9f1; color: #102033; min-width: 82px; }
 button.danger { background: #ef4444; color: #fff; }
 button.ok { background: #16a34a; color: #fff; }
 button:disabled { opacity: .50; cursor: default; }
 .actions { margin-top: 12px; }
 .actions button { margin-right: 7px; }
 .statusline { margin-bottom: 2px; }
-.status {
-  display: inline-block;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-weight: 700;
-  background: #e5e7eb;
-  color: #374151;
-}
+.status { display: inline-block; padding: 6px 10px; border-radius: 999px; font-weight: 700; background: #e5e7eb; color: #374151; }
 .status.running { background: #dcfce7; color: #166534; }
+.status.ready { background: #e0f2fe; color: #075985; }
 .status.stopped { background: #fee2e2; color: #991b1b; }
 .checkline { margin-top: 12px; }
 .checkline input { vertical-align: middle; }
-.log {
-  height: 132px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  background: #101828;
-  color: #d1d5db;
-  border-radius: 7px;
-  padding: 9px;
-  font-family: Consolas, monospace;
-  font-size: 12px;
-  line-height: 16px;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  box-sizing: border-box;
-}
-.small {
-  color: #5f6f83;
-  font-size: 12px;
-  margin-top: 8px;
-  line-height: 17px;
-}
-.footerhint {
-  color: #6b7280;
-  font-size: 11px;
-  margin-top: 6px;
-}
+.log { height: 132px; overflow-y: auto; overflow-x: hidden; background: #101828; color: #d1d5db; border-radius: 7px; padding: 9px; font-family: Consolas, monospace; font-size: 12px; line-height: 16px; white-space: pre-wrap; word-wrap: break-word; box-sizing: border-box; }
+.small { color: #5f6f83; font-size: 12px; margin-top: 8px; line-height: 17px; }
+.footerhint { color: #6b7280; font-size: 11px; margin-top: 6px; }
 </style>
 <script language="javascript">
 window.onerror = function(message, url, line) {
@@ -149,8 +56,8 @@ window.onerror = function(message, url, line) {
   return true;
 };
 
-var shell, shellApp, fso, appDir, batPath, configPath, exitPath, startupLinkPath;
-var running = false;
+var shell, shellApp, fso, appDir, batPath, configPath, exitPath, startupLinkPath, hiddenStarterPath;
+var runningFromGui = false;
 
 function init() {
   window.resizeTo(640, 565);
@@ -162,24 +69,24 @@ function init() {
 
   appDir = getAppDir();
   batPath = appDir + '\\emailopener.bat';
+  hiddenStarterPath = appDir + '\\emailopener_hidden_start.vbs';
   configPath = appDir + '\\emailopener_config.ini';
   exitPath = appDir + '\\exit.txt';
   startupLinkPath = shell.SpecialFolders('Startup') + '\\Email mappafigyelo.lnk';
 
   loadConfig();
   document.getElementById('autostart').checked = fso.FileExists(startupLinkPath);
-  setStatus(false, 'Leallitva');
+  setStatus('ready', 'GUI keszenletben');
 
   if (!fso.FileExists(batPath)) {
     log('HIBA: Nem talalhato az emailopener.bat ebben a mappaban: ' + appDir);
     document.getElementById('startBtn').disabled = true;
-  } else {
-    log('GUI betoltve. Valassz mappat, majd inditsd a figyelest.');
+  }
+  if (!fso.FileExists(hiddenStarterPath)) {
+    log('HIBA: Nem talalhato az emailopener_hidden_start.vbs. A Windowszal inditas nem mukodik.');
   }
 
-  if (isStartupLaunch() && document.getElementById('autostart').checked) {
-    startMonitor();
-  }
+  log('GUI betoltve. A Windowszal inditas csak a rejtett BAT figyelot inditja, nem ezt az ablakot.');
 }
 
 function getAppDir() {
@@ -187,15 +94,6 @@ function getAppDir() {
   if (full.charAt(0) == '/') full = full.substring(1);
   full = full.replace(/\//g, '\\');
   return full.substring(0, full.lastIndexOf('\\'));
-}
-
-function isStartupLaunch() {
-  try {
-    var cmd = window.external.commandLine.toLowerCase();
-    return cmd.indexOf('/startup') >= 0;
-  } catch(e) {
-    return false;
-  }
 }
 
 function browseFolder() {
@@ -215,74 +113,64 @@ function browseFolder() {
 
 function startMonitor() {
   var folder = trim(document.getElementById('folderPath').value);
-  if (folder == '') {
-    alert('Eloszor valassz ki egy figyelendo mappat.');
-    return;
-  }
-  if (!fso.FolderExists(folder)) {
-    alert('A megadott mappa nem letezik:\n' + folder);
-    return;
-  }
-  if (!fso.FileExists(batPath)) {
-    alert('Nem talalhato az emailopener.bat:\n' + batPath);
-    return;
-  }
+  if (folder == '') { alert('Eloszor valassz ki egy figyelendo mappat.'); return; }
+  if (!fso.FolderExists(folder)) { alert('A megadott mappa nem letezik:\n' + folder); return; }
+  if (!fso.FileExists(batPath)) { alert('Nem talalhato az emailopener.bat:\n' + batPath); return; }
 
   saveConfig();
   removeExitFile();
 
   var cmd = 'cmd.exe /c cd /d "' + appDir + '" && "' + batPath + '" "' + folder + '"';
   shell.Run(cmd, 0, false);
-  running = true;
-  setStatus(true, 'Fut');
-  log('Figyeles elinditva: ' + folder);
+  runningFromGui = true;
+  setStatus('running', 'Fut');
+  log('Figyeles elinditva rejtetten: ' + folder);
 }
 
 function stopMonitor(showLog) {
-  if (!running && showLog) {
-    log('A figyelo jelenleg nem fut.');
-    return;
-  }
   try {
     var file = fso.CreateTextFile(exitPath, true);
     file.WriteLine('stop');
     file.Close();
-    if (showLog) log('Leallitas kert. A figyelo par masodpercen belul kilep.');
+    if (showLog) log('Leallitas jelzes elkuldve. Ha fut hatterfigyeles, par masodpercen belul kilep.');
   } catch(e) {
     if (showLog) log('HIBA: Nem sikerult letrehozni az exit.txt fajlt: ' + e.message);
   }
-  running = false;
-  setStatus(false, 'Leallitva');
+  runningFromGui = false;
+  setStatus('ready', 'GUI keszenletben');
 }
 
 function removeExitFile() {
-  try {
-    if (fso.FileExists(exitPath)) fso.DeleteFile(exitPath, true);
-  } catch(e) {}
+  try { if (fso.FileExists(exitPath)) fso.DeleteFile(exitPath, true); } catch(e) {}
 }
 
 function toggleAutostart() {
-  if (document.getElementById('autostart').checked) {
-    createStartupShortcut();
-  } else {
-    removeStartupShortcut();
-  }
+  if (document.getElementById('autostart').checked) createStartupShortcut(); else removeStartupShortcut();
   saveConfig();
 }
 
 function createStartupShortcut() {
   try {
-    var lnk = shell.CreateShortcut(startupLinkPath);
-    lnk.TargetPath = 'mshta.exe';
-    lnk.Arguments = '"' + appDir + '\\emailopener_gui.hta" /startup';
-    lnk.WorkingDirectory = appDir;
-    if (fso.FileExists(appDir + '\\emailopener.ico')) {
-      lnk.IconLocation = appDir + '\\emailopener.ico';
-    } else {
-      lnk.IconLocation = 'mshta.exe,0';
+    var folder = trim(document.getElementById('folderPath').value);
+    if (folder == '') {
+      alert('Automatikus inditas elott valassz ki es ments el egy figyelendo mappat.');
+      document.getElementById('autostart').checked = false;
+      return;
     }
+    if (!fso.FileExists(hiddenStarterPath)) {
+      alert('Nem talalhato az emailopener_hidden_start.vbs.');
+      document.getElementById('autostart').checked = false;
+      return;
+    }
+    saveConfig();
+    var lnk = shell.CreateShortcut(startupLinkPath);
+    lnk.TargetPath = 'wscript.exe';
+    lnk.Arguments = '//B //Nologo "' + hiddenStarterPath + '"';
+    lnk.WorkingDirectory = appDir;
+    if (fso.FileExists(appDir + '\\emailopener.ico')) lnk.IconLocation = appDir + '\\emailopener.ico';
+    else lnk.IconLocation = 'wscript.exe,0';
     lnk.Save();
-    log('Windows automatikus inditas bekapcsolva.');
+    log('Windows automatikus inditas bekapcsolva: csak a rejtett BAT figyelo indul, GUI nem.');
   } catch(e) {
     document.getElementById('autostart').checked = false;
     log('HIBA: Nem sikerult beallitani az automatikus inditast: ' + e.message);
@@ -293,9 +181,7 @@ function removeStartupShortcut() {
   try {
     if (fso.FileExists(startupLinkPath)) fso.DeleteFile(startupLinkPath, true);
     log('Windows automatikus inditas kikapcsolva.');
-  } catch(e) {
-    log('HIBA: Nem sikerult torolni az automatikus inditast: ' + e.message);
-  }
+  } catch(e) { log('HIBA: Nem sikerult torolni az automatikus inditast: ' + e.message); }
 }
 
 function saveConfig() {
@@ -304,9 +190,7 @@ function saveConfig() {
     file.WriteLine('folder=' + document.getElementById('folderPath').value);
     file.WriteLine('autostart=' + (document.getElementById('autostart').checked ? '1' : '0'));
     file.Close();
-  } catch(e) {
-    log('HIBA: Nem sikerult menteni a beallitasokat: ' + e.message);
-  }
+  } catch(e) { log('HIBA: Nem sikerult menteni a beallitasokat: ' + e.message); }
 }
 
 function loadConfig() {
@@ -323,17 +207,15 @@ function loadConfig() {
       }
     }
     file.Close();
-  } catch(e) {
-    log('HIBA: Nem sikerult betolteni a beallitasokat: ' + e.message);
-  }
+  } catch(e) { log('HIBA: Nem sikerult betolteni a beallitasokat: ' + e.message); }
 }
 
-function setStatus(isRunning, text) {
+function setStatus(mode, text) {
   var s = document.getElementById('status');
-  s.className = 'status ' + (isRunning ? 'running' : 'stopped');
+  s.className = 'status ' + mode;
   s.innerText = text;
-  document.getElementById('startBtn').disabled = isRunning;
-  document.getElementById('stopBtn').disabled = !isRunning;
+  document.getElementById('startBtn').disabled = (mode == 'running');
+  document.getElementById('stopBtn').disabled = false;
 }
 
 function log(msg) {
@@ -345,7 +227,7 @@ function log(msg) {
 
 function beforeClose() {
   saveConfig();
-  if (running) stopMonitor(false);
+  if (runningFromGui) stopMonitor(false);
 }
 
 function pad(n) { return n < 10 ? '0' + n : '' + n; }
@@ -367,7 +249,7 @@ function trim(s) { return s.replace(/^\s+|\s+$/g, ''); }
   </div>
 
   <div class="card">
-    <div class="statusline">&Aacute;llapot: <span id="status" class="status stopped">Le&aacute;ll&iacute;tva</span></div>
+    <div class="statusline">&Aacute;llapot: <span id="status" class="status ready">GUI k&eacute;szenl&eacute;tben</span></div>
     <div class="actions">
       <button id="startBtn" class="ok" onclick="startMonitor()">Figyel&eacute;s ind&iacute;t&aacute;sa</button>
       <button id="stopBtn" class="danger" onclick="stopMonitor(true)">Le&aacute;ll&iacute;t&aacute;s</button>
@@ -375,14 +257,14 @@ function trim(s) { return s.replace(/^\s+|\s+$/g, ''); }
     </div>
     <div class="checkline">
       <input type="checkbox" id="autostart" onclick="toggleAutostart()" />
-      <span>Induljon el automatikusan a Windowszal</span>
+      <span>Windowszal induljon a rejtett figyel&eacute;s, GUI n&eacute;lk&uuml;l</span>
     </div>
   </div>
 
   <div class="card">
     <label>Napl&oacute;</label>
     <div id="log" class="log"></div>
-    <div class="footerhint">Nincs tray/minimalizalas funkcio. Bezaraskor a figyeles leall.</div>
+    <div class="footerhint">A Le&aacute;ll&iacute;t&aacute;s gomb a Windowszal indult rejtett figyel&eacute;st is le tudja &aacute;ll&iacute;tani.</div>
   </div>
 </div>
 </body>
