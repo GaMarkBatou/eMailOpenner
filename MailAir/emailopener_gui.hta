@@ -1,0 +1,389 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta charset="utf-8" />
+<meta http-equiv="x-ua-compatible" content="IE=9" />
+<title>Email mappafigyelo</title>
+<HTA:APPLICATION
+  ID="EmailOpenerGUI"
+  APPLICATIONNAME="Email mappafigyelo"
+  BORDER="thin"
+  BORDERSTYLE="normal"
+  CAPTION="yes"
+  CONTEXTMENU="no"
+  ICON="emailopener.ico"
+  INNERBORDER="no"
+  MAXIMIZEBUTTON="no"
+  MINIMIZEBUTTON="yes"
+  SCROLL="no"
+  SHOWINTASKBAR="yes"
+  SINGLEINSTANCE="yes"
+  SYSMENU="yes"
+  WINDOWSTATE="normal"
+/>
+<style>
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+body {
+  font-family: Segoe UI, Arial, sans-serif;
+  background: #eef2f7;
+  color: #102033;
+  font-size: 13px;
+}
+.wrap {
+  padding: 18px;
+  box-sizing: border-box;
+  height: 100%;
+}
+h1 {
+  margin: 0 0 4px 0;
+  font-size: 21px;
+  line-height: 26px;
+  font-weight: 700;
+  color: #0f2540;
+}
+.sub {
+  color: #5f6f83;
+  margin-bottom: 14px;
+}
+.card {
+  background: #ffffff;
+  border: 1px solid #d4dce8;
+  border-radius: 8px;
+  padding: 13px 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 2px rgba(16,32,51,.06);
+}
+label {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 7px;
+  color: #14263b;
+}
+.row {
+  display: table;
+  width: 100%;
+}
+.cell {
+  display: table-cell;
+  vertical-align: middle;
+}
+.cell.path {
+  width: 100%;
+  padding-right: 8px;
+}
+input[type=text] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 9px;
+  border: 1px solid #b7c2d2;
+  border-radius: 6px;
+  font-family: Consolas, monospace;
+  font-size: 12px;
+  background: #ffffff;
+  color: #102033;
+}
+button {
+  border: 0;
+  border-radius: 6px;
+  padding: 9px 14px;
+  cursor: hand;
+  font-weight: 700;
+  background: #e3e9f1;
+  color: #102033;
+  min-width: 82px;
+}
+button.primary { background: #2563eb; color: #fff; }
+button.danger { background: #ef4444; color: #fff; }
+button.ok { background: #16a34a; color: #fff; }
+button:disabled { opacity: .50; cursor: default; }
+.actions { margin-top: 12px; }
+.actions button { margin-right: 7px; }
+.statusline { margin-bottom: 2px; }
+.status {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 700;
+  background: #e5e7eb;
+  color: #374151;
+}
+.status.running { background: #dcfce7; color: #166534; }
+.status.stopped { background: #fee2e2; color: #991b1b; }
+.checkline { margin-top: 12px; }
+.checkline input { vertical-align: middle; }
+.log {
+  height: 132px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #101828;
+  color: #d1d5db;
+  border-radius: 7px;
+  padding: 9px;
+  font-family: Consolas, monospace;
+  font-size: 12px;
+  line-height: 16px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  box-sizing: border-box;
+}
+.small {
+  color: #5f6f83;
+  font-size: 12px;
+  margin-top: 8px;
+  line-height: 17px;
+}
+.footerhint {
+  color: #6b7280;
+  font-size: 11px;
+  margin-top: 6px;
+}
+</style>
+<script language="javascript">
+window.onerror = function(message, url, line) {
+  try { log('SCRIPT HIBA [' + line + ']: ' + message); } catch(e) {}
+  return true;
+};
+
+var shell, shellApp, fso, appDir, batPath, configPath, exitPath, startupLinkPath;
+var running = false;
+
+function init() {
+  window.resizeTo(640, 565);
+  try { window.moveTo((screen.availWidth - 640) / 2, (screen.availHeight - 565) / 2); } catch(e) {}
+
+  shell = new ActiveXObject('WScript.Shell');
+  shellApp = new ActiveXObject('Shell.Application');
+  fso = new ActiveXObject('Scripting.FileSystemObject');
+
+  appDir = getAppDir();
+  batPath = appDir + '\\emailopener.bat';
+  configPath = appDir + '\\emailopener_config.ini';
+  exitPath = appDir + '\\exit.txt';
+  startupLinkPath = shell.SpecialFolders('Startup') + '\\Email mappafigyelo.lnk';
+
+  loadConfig();
+  document.getElementById('autostart').checked = fso.FileExists(startupLinkPath);
+  setStatus(false, 'Leallitva');
+
+  if (!fso.FileExists(batPath)) {
+    log('HIBA: Nem talalhato az emailopener.bat ebben a mappaban: ' + appDir);
+    document.getElementById('startBtn').disabled = true;
+  } else {
+    log('GUI betoltve. Valassz mappat, majd inditsd a figyelest.');
+  }
+
+  if (isStartupLaunch() && document.getElementById('autostart').checked) {
+    startMonitor();
+  }
+}
+
+function getAppDir() {
+  var full = decodeURIComponent(location.pathname);
+  if (full.charAt(0) == '/') full = full.substring(1);
+  full = full.replace(/\//g, '\\');
+  return full.substring(0, full.lastIndexOf('\\'));
+}
+
+function isStartupLaunch() {
+  try {
+    var cmd = window.external.commandLine.toLowerCase();
+    return cmd.indexOf('/startup') >= 0;
+  } catch(e) {
+    return false;
+  }
+}
+
+function browseFolder() {
+  try {
+    var folder = shellApp.BrowseForFolder(0, 'Valaszd ki a figyelendo mappat', 0, 0);
+    if (folder) {
+      var path = folder.Self.Path;
+      document.getElementById('folderPath').value = path;
+      saveConfig();
+      log('Mappa beallitva: ' + path);
+    }
+  } catch(e) {
+    log('HIBA: A tallozas nem indithato: ' + e.message);
+    alert('A mappatallozo nem indithato. Ird be vagy masold be kezzel a mappa teljes eleresi utjat.');
+  }
+}
+
+function startMonitor() {
+  var folder = trim(document.getElementById('folderPath').value);
+  if (folder == '') {
+    alert('Eloszor valassz ki egy figyelendo mappat.');
+    return;
+  }
+  if (!fso.FolderExists(folder)) {
+    alert('A megadott mappa nem letezik:\n' + folder);
+    return;
+  }
+  if (!fso.FileExists(batPath)) {
+    alert('Nem talalhato az emailopener.bat:\n' + batPath);
+    return;
+  }
+
+  saveConfig();
+  removeExitFile();
+
+  var cmd = 'cmd.exe /c cd /d "' + appDir + '" && "' + batPath + '" "' + folder + '"';
+  shell.Run(cmd, 0, false);
+  running = true;
+  setStatus(true, 'Fut');
+  log('Figyeles elinditva: ' + folder);
+}
+
+function stopMonitor(showLog) {
+  if (!running && showLog) {
+    log('A figyelo jelenleg nem fut.');
+    return;
+  }
+  try {
+    var file = fso.CreateTextFile(exitPath, true);
+    file.WriteLine('stop');
+    file.Close();
+    if (showLog) log('Leallitas kert. A figyelo par masodpercen belul kilep.');
+  } catch(e) {
+    if (showLog) log('HIBA: Nem sikerult letrehozni az exit.txt fajlt: ' + e.message);
+  }
+  running = false;
+  setStatus(false, 'Leallitva');
+}
+
+function removeExitFile() {
+  try {
+    if (fso.FileExists(exitPath)) fso.DeleteFile(exitPath, true);
+  } catch(e) {}
+}
+
+function toggleAutostart() {
+  if (document.getElementById('autostart').checked) {
+    createStartupShortcut();
+  } else {
+    removeStartupShortcut();
+  }
+  saveConfig();
+}
+
+function createStartupShortcut() {
+  try {
+    var lnk = shell.CreateShortcut(startupLinkPath);
+    lnk.TargetPath = 'mshta.exe';
+    lnk.Arguments = '"' + appDir + '\\emailopener_gui.hta" /startup';
+    lnk.WorkingDirectory = appDir;
+    if (fso.FileExists(appDir + '\\emailopener.ico')) {
+      lnk.IconLocation = appDir + '\\emailopener.ico';
+    } else {
+      lnk.IconLocation = 'mshta.exe,0';
+    }
+    lnk.Save();
+    log('Windows automatikus inditas bekapcsolva.');
+  } catch(e) {
+    document.getElementById('autostart').checked = false;
+    log('HIBA: Nem sikerult beallitani az automatikus inditast: ' + e.message);
+  }
+}
+
+function removeStartupShortcut() {
+  try {
+    if (fso.FileExists(startupLinkPath)) fso.DeleteFile(startupLinkPath, true);
+    log('Windows automatikus inditas kikapcsolva.');
+  } catch(e) {
+    log('HIBA: Nem sikerult torolni az automatikus inditast: ' + e.message);
+  }
+}
+
+function saveConfig() {
+  try {
+    var file = fso.CreateTextFile(configPath, true);
+    file.WriteLine('folder=' + document.getElementById('folderPath').value);
+    file.WriteLine('autostart=' + (document.getElementById('autostart').checked ? '1' : '0'));
+    file.Close();
+  } catch(e) {
+    log('HIBA: Nem sikerult menteni a beallitasokat: ' + e.message);
+  }
+}
+
+function loadConfig() {
+  try {
+    if (!fso.FileExists(configPath)) return;
+    var file = fso.OpenTextFile(configPath, 1, false);
+    while (!file.AtEndOfStream) {
+      var line = file.ReadLine();
+      var p = line.indexOf('=');
+      if (p > 0) {
+        var key = line.substring(0, p);
+        var val = line.substring(p + 1);
+        if (key == 'folder') document.getElementById('folderPath').value = val;
+      }
+    }
+    file.Close();
+  } catch(e) {
+    log('HIBA: Nem sikerult betolteni a beallitasokat: ' + e.message);
+  }
+}
+
+function setStatus(isRunning, text) {
+  var s = document.getElementById('status');
+  s.className = 'status ' + (isRunning ? 'running' : 'stopped');
+  s.innerText = text;
+  document.getElementById('startBtn').disabled = isRunning;
+  document.getElementById('stopBtn').disabled = !isRunning;
+}
+
+function log(msg) {
+  var box = document.getElementById('log');
+  var now = new Date();
+  var ts = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+  box.innerText = '[' + ts + '] ' + msg + '\n' + box.innerText;
+}
+
+function beforeClose() {
+  saveConfig();
+  if (running) stopMonitor(false);
+}
+
+function pad(n) { return n < 10 ? '0' + n : '' + n; }
+function trim(s) { return s.replace(/^\s+|\s+$/g, ''); }
+</script>
+</head>
+<body onload="init()" onunload="beforeClose()">
+<div class="wrap">
+  <h1>Email mappafigyel&oacute;</h1>
+  <div class="sub">.eml &eacute;s .msg f&aacute;jlok automatikus megnyit&aacute;sa egy figyelt mapp&aacute;b&oacute;l.</div>
+
+  <div class="card">
+    <label>Figyelend&otilde; mappa</label>
+    <div class="row">
+      <div class="cell path"><input type="text" id="folderPath" onblur="saveConfig()" /></div>
+      <div class="cell"><button onclick="browseFolder()">Tall&oacute;z&aacute;s</button></div>
+    </div>
+    <div class="small">A feldolgozott f&aacute;jlok a kiv&aacute;lasztott mapp&aacute;n bel&uuml;li <b>processed</b> almapp&aacute;ba ker&uuml;lnek.</div>
+  </div>
+
+  <div class="card">
+    <div class="statusline">&Aacute;llapot: <span id="status" class="status stopped">Le&aacute;ll&iacute;tva</span></div>
+    <div class="actions">
+      <button id="startBtn" class="ok" onclick="startMonitor()">Figyel&eacute;s ind&iacute;t&aacute;sa</button>
+      <button id="stopBtn" class="danger" onclick="stopMonitor(true)">Le&aacute;ll&iacute;t&aacute;s</button>
+      <button onclick="saveConfig(); log('Beallitasok mentve.')">Ment&eacute;s</button>
+    </div>
+    <div class="checkline">
+      <input type="checkbox" id="autostart" onclick="toggleAutostart()" />
+      <span>Induljon el automatikusan a Windowszal</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>Napl&oacute;</label>
+    <div id="log" class="log"></div>
+    <div class="footerhint">Nincs tray/minimalizalas funkcio. Bezaraskor a figyeles leall.</div>
+  </div>
+</div>
+</body>
+</html>
