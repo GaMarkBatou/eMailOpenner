@@ -1,0 +1,9 @@
+06/10/2026 17:13:02 - Rejtett indito elindult. AppDir=C:\Users\A200298717\OneDrive - Deutsche Telekom AG\Dokumente\Chrome Ext\emailopener\MailAir
+06/10/2026 17:13:02 - BAT inditasa rejtetten. Mappa=C:\Users\A200298717\OneDrive - Deutsche Telekom AG\Desktop\Mails
+06/10/2026 17:13:02 - Indito kesz. Ha nincs ujabb hiba, a figyelo a hatterben fut.
+06/11/2026 20:22:23 - Rejtett indito elindult. AppDir=C:\Users\A200298717\OneDrive - Deutsche Telekom AG\Dokumente\Chrome Ext\emailopener\MailAir
+06/11/2026 20:22:23 - BAT inditasa rejtetten. Mappa=C:\Users\A200298717\OneDrive - Deutsche Telekom AG\Desktop\Mails
+06/11/2026 20:22:23 - Indito kesz. Ha nincs ujabb hiba, a figyelo a hatterben fut.
+06/16/2026 14:07:16 - Rejtett indito elindult. AppDir=C:\Users\A200298717\OneDrive - Deutsche Telekom AG\Dokumente\Chrome Ext\emailopener\MailAir
+06/16/2026 14:07:16 - BAT inditasa rejtetten. Mappa=C:\Users\A200298717\OneDrive - Deutsche Telekom AG\Desktop\Mails
+06/16/2026 14:07:17 - Indito kesz. Ha nincs ujabb hiba, a figyelo a hatterben fut.

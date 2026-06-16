@@ -56,12 +56,12 @@ window.onerror = function(message, url, line) {
   return true;
 };
 
-var shell, shellApp, fso, appDir, batPath, configPath, exitPath, startupLinkPath, hiddenStarterPath;
+var shell, shellApp, fso, appDir, batPath, configPath, exitPath, startupLinkPath, hiddenStarterPath, startupRegName;
 var runningFromGui = false;
 
 function init() {
-  window.resizeTo(640, 565);
-  try { window.moveTo((screen.availWidth - 640) / 2, (screen.availHeight - 565) / 2); } catch(e) {}
+  window.resizeTo(660, 580);
+  try { window.moveTo((screen.availWidth - 660) / 2, (screen.availHeight - 580) / 2); } catch(e) {}
 
   shell = new ActiveXObject('WScript.Shell');
   shellApp = new ActiveXObject('Shell.Application');
@@ -73,6 +73,7 @@ function init() {
   configPath = appDir + '\\emailopener_config.ini';
   exitPath = appDir + '\\exit.txt';
   startupLinkPath = shell.SpecialFolders('Startup') + '\\Email mappafigyelo.lnk';
+  startupRegName = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\EmailMappafigyelo';
 
   loadConfig();
   document.getElementById('autostart').checked = fso.FileExists(startupLinkPath);
@@ -86,7 +87,12 @@ function init() {
     log('HIBA: Nem talalhato az emailopener_hidden_start.vbs. A Windowszal inditas nem mukodik.');
   }
 
-  log('GUI betoltve. A Windowszal inditas csak a rejtett BAT figyelot inditja, nem ezt az ablakot.');
+  if (isAutostartLaunch()) {
+    log('Windows inditasbol nyilt meg a GUI. Automatikus figyeles inditasa...');
+    window.setTimeout(function() { startMonitor(true); }, 800);
+  } else {
+    log('GUI betoltve. A figyeles a GUI bezarasa utan is futhat a hatterben. Leallitani a Leallitas gombbal lehet.');
+  }
 }
 
 function getAppDir() {
@@ -111,20 +117,21 @@ function browseFolder() {
   }
 }
 
-function startMonitor() {
+function startMonitor(autoMode) {
   var folder = trim(document.getElementById('folderPath').value);
-  if (folder == '') { alert('Eloszor valassz ki egy figyelendo mappat.'); return; }
-  if (!fso.FolderExists(folder)) { alert('A megadott mappa nem letezik:\n' + folder); return; }
-  if (!fso.FileExists(batPath)) { alert('Nem talalhato az emailopener.bat:\n' + batPath); return; }
+  if (folder == '') { if (autoMode) { log('HIBA: automatikus inditashoz nincs beallitott figyelendo mappa.'); } else { alert('Eloszor valassz ki egy figyelendo mappat.'); } return; }
+  if (!fso.FolderExists(folder)) { if (autoMode) { log('HIBA: a beallitott mappa nem letezik: ' + folder); } else { alert('A megadott mappa nem letezik:\n' + folder); } return; }
+  if (!fso.FileExists(batPath)) { if (autoMode) { log('HIBA: nem talalhato az emailopener.bat: ' + batPath); } else { alert('Nem talalhato az emailopener.bat:\n' + batPath); } return; }
+  if (!fso.FileExists(hiddenStarterPath)) { if (autoMode) { log('HIBA: nem talalhato az emailopener_hidden_start.vbs: ' + hiddenStarterPath); } else { alert('Nem talalhato az emailopener_hidden_start.vbs:\n' + hiddenStarterPath); } return; }
 
   saveConfig();
   removeExitFile();
 
-  var cmd = 'cmd.exe /c cd /d "' + appDir + '" && "' + batPath + '" "' + folder + '"';
+  var cmd = 'wscript.exe //B //Nologo "' + hiddenStarterPath + '"';
   shell.Run(cmd, 0, false);
-  runningFromGui = true;
-  setStatus('running', 'Fut');
-  log('Figyeles elinditva rejtetten: ' + folder);
+  runningFromGui = false;
+  setStatus('running', 'Fut a hatterben');
+  log((autoMode ? 'Automatikus inditas: ' : '') + 'Rejtett hatterfigyeles elinditva GUI-tol fuggetlenul: ' + folder);
 }
 
 function stopMonitor(showLog) {
@@ -157,20 +164,27 @@ function createStartupShortcut() {
       document.getElementById('autostart').checked = false;
       return;
     }
-    if (!fso.FileExists(hiddenStarterPath)) {
-      alert('Nem talalhato az emailopener_hidden_start.vbs.');
-      document.getElementById('autostart').checked = false;
-      return;
-    }
     saveConfig();
+
+    var htaPath = appDir + '\\emailopener_gui.hta';
+    var mshtaPath = shell.ExpandEnvironmentStrings('%SystemRoot%') + '\\System32\\mshta.exe';
+    var args = '"' + htaPath + '" autostart';
+
     var lnk = shell.CreateShortcut(startupLinkPath);
-    lnk.TargetPath = 'wscript.exe';
-    lnk.Arguments = '//B //Nologo "' + hiddenStarterPath + '"';
+    lnk.TargetPath = mshtaPath;
+    lnk.Arguments = args;
     lnk.WorkingDirectory = appDir;
     if (fso.FileExists(appDir + '\\emailopener.ico')) lnk.IconLocation = appDir + '\\emailopener.ico';
-    else lnk.IconLocation = 'wscript.exe,0';
+    else lnk.IconLocation = mshtaPath + ',0';
     lnk.Save();
-    log('Windows automatikus inditas bekapcsolva: csak a rejtett BAT figyelo indul, GUI nem.');
+
+    try {
+      shell.RegWrite(startupRegName, '"' + mshtaPath + '" ' + args, 'REG_SZ');
+    } catch(regErr) {
+      log('FIGYELEM: Registry automatikus inditas nem sikerult, Startup parancsikon ettol meg letrejott: ' + regErr.message);
+    }
+
+    log('Windows automatikus inditas bekapcsolva: a HTA GUI indul el, majd automatikusan elinditja a hatterfigyelest.');
   } catch(e) {
     document.getElementById('autostart').checked = false;
     log('HIBA: Nem sikerult beallitani az automatikus inditast: ' + e.message);
@@ -180,6 +194,7 @@ function createStartupShortcut() {
 function removeStartupShortcut() {
   try {
     if (fso.FileExists(startupLinkPath)) fso.DeleteFile(startupLinkPath, true);
+    try { shell.RegDelete(startupRegName); } catch(regErr) {}
     log('Windows automatikus inditas kikapcsolva.');
   } catch(e) { log('HIBA: Nem sikerult torolni az automatikus inditast: ' + e.message); }
 }
@@ -227,7 +242,17 @@ function log(msg) {
 
 function beforeClose() {
   saveConfig();
-  if (runningFromGui) stopMonitor(false);
+  // Fontos: a GUI bezarasa nem allitja le a hatterfigyelest.
+  // Leallitani csak a Leallitas gombbal lehet.
+}
+
+function isAutostartLaunch() {
+  try {
+    var a = String(location.href).toLowerCase();
+    var b = '';
+    try { b = String(EmailOpenerGUI.commandLine).toLowerCase(); } catch(inner) {}
+    return (a.indexOf('autostart=1') >= 0 || b.indexOf('autostart') >= 0);
+  } catch(e) { return false; }
 }
 
 function pad(n) { return n < 10 ? '0' + n : '' + n; }
@@ -257,14 +282,14 @@ function trim(s) { return s.replace(/^\s+|\s+$/g, ''); }
     </div>
     <div class="checkline">
       <input type="checkbox" id="autostart" onclick="toggleAutostart()" />
-      <span>Windowszal induljon a rejtett figyel&eacute;s, GUI n&eacute;lk&uuml;l</span>
+      <span>Windowszal induljon a GUI, &eacute;s automatikusan ind&iacute;tsa a figyel&eacute;st</span>
     </div>
   </div>
 
   <div class="card">
     <label>Napl&oacute;</label>
     <div id="log" class="log"></div>
-    <div class="footerhint">A Le&aacute;ll&iacute;t&aacute;s gomb a Windowszal indult rejtett figyel&eacute;st is le tudja &aacute;ll&iacute;tani.</div>
+    <div class="footerhint">A GUI bez&aacute;r&aacute;sa nem &aacute;ll&iacute;tja le a figyel&eacute;st. Le&aacute;ll&iacute;t&aacute;s csak a Le&aacute;ll&iacute;t&aacute;s gombbal.</div>
   </div>
 </div>
 </body>
